@@ -263,7 +263,7 @@ defmodule Ueberauth.Strategy do
   ### Cross-Site Request Forgery
 
   By default strategies must implement https://tools.ietf.org/html/rfc6749#section-10.12
-  if you wish to disable this feature, you can use the `:ignores_csrf_attack` option:
+  if you wish to disable such feature, use `:ignores_csrf_attack` option:
 
       defmodule MyStrategy do
         use Ueberauth.Strategy,
@@ -271,8 +271,8 @@ defmodule Ueberauth.Strategy do
         # …
       end
 
-  We strongly recommend never disabling this feature, unless you have some technical
-  limitations that forces you to do so.
+  Althought we strongly recommend never disable such feature, unless you have
+  some technical limitations that forces you to use such `:ignores_csrf_attack`.
   """
   defmacro __using__(opts \\ []) do
     quote location: :keep do
@@ -317,13 +317,13 @@ defmodule Ueberauth.Strategy do
   @doc false
   def run_request(conn, strategy) do
     conn
-    |> maybe_add_state_param(strategy)
+    |> maybe_add_state_param()
     |> run_handle_request(strategy)
   end
 
   @doc false
   def run_callback(conn, strategy) do
-    with false <- get_ignores_csrf_attack_option(strategy),
+    with false <- get_ignores_csrf_attack_option(conn),
          false <- state_param_matches?(conn) do
       add_state_mismatch_error(conn, strategy)
     else
@@ -342,6 +342,7 @@ defmodule Ueberauth.Strategy do
 
   defp state_param_matches?(conn) do
     param_cookie = conn.params["state"]
+
     not is_nil(param_cookie) and param_cookie == get_state_cookie(conn)
   end
 
@@ -370,17 +371,16 @@ defmodule Ueberauth.Strategy do
     apply(strategy, :handle_cleanup!, [conn])
   end
 
-  defp maybe_add_state_param(conn, strategy) do
-    if get_ignores_csrf_attack_option(strategy) do
+  defp maybe_add_state_param(conn) do
+    if get_ignores_csrf_attack_option(conn) do
       conn
     else
       add_state_param(conn)
     end
   end
 
-  defp get_ignores_csrf_attack_option(strategy) do
-    strategy
-    |> apply(:default_options, [])
+  defp get_ignores_csrf_attack_option(conn) do
+    Helpers.options(conn)
     |> Keyword.get(:ignores_csrf_attack, false)
   end
 
